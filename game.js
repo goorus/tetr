@@ -3,7 +3,7 @@
  *
  * @author кто-то
  */
-Game = {
+var Game = {
 	board: null,
 
 	config: {},
@@ -79,6 +79,31 @@ Game = {
 			matrix[col][row] = 0;
 		}
 	},
+	
+	clearFullLines: function() {
+		var current = this.matrix.length - 1;
+		var source = current;
+		while (current >= 0) {
+			var full = this.isFullLine(current);
+			
+			if (full) {
+				--source;
+			}
+			
+			if (source != current) {
+				if (source >= 0) {
+					this.matrix[current] = this.matrix[source];
+				} else {
+					this.matrix[current] = [];
+				}
+			}
+			
+			if (!full) {
+				--current;
+				--source;
+			}
+		}
+	},
 
 	createCell: function(col, row) {
 		var div = $('<div></div>').addClass('cell-' + col + '-' + row).css({
@@ -92,7 +117,7 @@ Game = {
 	},
 
 	createRandomFigure: function() {
-		var index = Math.floor(Math.random() * Game.figures.length);
+		var index = 1;//Math.floor(Math.random() * Game.figures.length);
 		var figure = new window[Game.figures[index]](
 			0, Math.floor(Game.config.rows / 2)
 		);
@@ -139,8 +164,8 @@ Game = {
 
 	init: function(board, config) {
 		Game.config = $.extend({
-			cols: 20,
-			rows: 20,
+			cols: 15,
+			rows: 10,
 			width: 20,
 			height: 20,
 			duration: 200
@@ -184,12 +209,34 @@ Game = {
 			}
 		}
 	},
+	
+	/**
+	 * @param {Integer} row
+	 * @return {Boolean}
+	 */
+	isFullLine: function (row) {
+		var x;
+		for (x = 0; x < this.matrix[row].length; ++x) {
+			if (!this.matrix[row][x]) {
+				return 0;
+			}
+		}
+		return 1;
+	},
+	
+	matrixlog: function () {
+		var row;
+		for (row = this.matrix.length - 1; row >= 0; --row) {
+			console.log(this.matrix[row]);
+		}
+	},
 
 	moveFigure: function(matrix, figure, colOffset, rowOffset) {
 		Game.replaceFigureMatrix(figure);
 		Game.clearFigure(matrix);	
 		if (Game.checkFloor(matrix, figure, colOffset)) {
 			Game.restoreLastFigure();
+			Game.clearFullLines();
 			Game.createRandomFigure();
 			return 1;
 		}
@@ -363,7 +410,7 @@ var LineFigure = Figure.extend({
 	getRightBounding: function() {
 		return [0, 0, 0, 0];
 	}
-})
+});
 
 var SquareFigure = Figure.extend({
 	fillMatrix: function() {
