@@ -25,24 +25,14 @@ Game = {
 		if (row < 0) {
 			return 0;
 		}
-		if (row >= Game.config.rows - 1) {
+		if (row > Game.config.rows - 2) {
 			return 0;
 		}
-		var col = figure.col, i, j, offsetCol, offsetRow;
-		var bounding;
-		if (offset > 0) {
-			bounding = figure.getRightBounding();
-		} else {
-			bounding = figure.getLeftBounding();
-		}
+		var col = figure.col, i, j;
 		for (i = 0; i < 4; i++) {
-			for (j = 0; j < bounding.length; j++) {
-				if (figure.matrix[i][j]) {
-					offsetCol = col + i;
-					offsetRow = row + bounding[j];
-					if (matrix[offsetCol][offsetRow]) {
-						return 0;
-					}
+			for (j = 0; j < 4; j++) {
+				if (matrix[i + col][row] && figure.matrix[i][j]) {
+					return 0;
 				}
 			}
 		}
@@ -63,30 +53,13 @@ Game = {
 		return 0;
 	},
 
-	checkConnection: function(matrix, figure, col, row) {
-		var offsetCol, offsetRow, i, j;
-		for (i = 0; i < 4; i++) {
-			offsetCol = col + i;
-			for (j = 0; j < 4; j++) {
-				offsetRow = row + j;
-				if (matrix[offsetCol][offsetRow] ==
-					figure[offsetCol][offsetRow]) {
-					if (matrix[offsetCol][offsetRow]) {
-						return 0;
-					}
-				}
-			}
-		}
-		return 1;
-	},
-
 	checkFloor: function(matrix, figure, offset) {
 		var col = figure.col, row = figure.row, i;
 		var bounding = figure.getBottomBouding(), offsetCol, offsetRow;
 		for (i = 0; i < bounding.length; i++) {
 			offsetCol = col + bounding[i][0] + offset;
 			offsetRow = row + bounding[i][1];
-			console.log(offsetCol + ', ' + offsetRow);
+			//console.log(offsetCol + ', ' + offsetRow);
 			if (offsetCol >= Game.config.cols) {
 				return 1;
 			}
@@ -214,22 +187,21 @@ Game = {
 
 	moveFigure: function(matrix, figure, colOffset, rowOffset) {
 		Game.replaceFigureMatrix(figure);
-		if (rowOffset) {
-			if (!Game.canMove(matrix, figure, rowOffset)) {
-				return 0;
-			}
-		}
+		Game.clearFigure(matrix);	
 		if (Game.checkFloor(matrix, figure, colOffset)) {
+			Game.restoreLastFigure();
 			Game.createRandomFigure();
 			return 1;
 		}
-		Game.clearFigure(matrix);
-		if (Game.checkCollision(matrix, figure, figure.col + colOffset,
+		if (!Game.checkCollision(matrix, figure, figure.col + colOffset,
 			figure.row + rowOffset)) {
-			return -1;
+			figure.col += colOffset;
+			if (rowOffset) {
+				if (Game.canMove(matrix, figure, rowOffset)) {
+					figure.row += rowOffset;
+				}
+			}
 		}
-		figure.col += colOffset;
-		figure.row += rowOffset;
 		Game.placeFigure(matrix, figure);
 		return 1;
 	},
@@ -256,9 +228,9 @@ Game = {
 				if (matrix[i][j]) {
 					Game.hightlightCell(board, i, j);
 				}
-				board.find('div.cell-' + i + '-' + j).text(
+				/*board.find('div.cell-' + i + '-' + j).text(
 					matrix[i][j]
-				);
+				);*/
 			}
 		}
 	},
@@ -277,6 +249,26 @@ Game = {
 	resetFigureData: function() {
 		Game.prevFigureMatrix = [];
 		Game.rowOffsetQueue = [];
+	},
+	
+	restoreLastFigure: function() {
+		if (Game.prevFigureMatrix.length) {
+			var count = 0, i, j;
+			for (i = 0; i < 4; i++) {
+				for (j = 0; j < 4; j++) {
+					if (Game.figure.matrix[i][j]) {
+						count++;
+					}
+				}
+			}
+			var i, col, row, last;
+			for (i = 0; i < count; i++) {
+				last = Game.prevFigureMatrix.length - i - 1;
+				col = Game.prevFigureMatrix[last][0];
+				row = Game.prevFigureMatrix[last][1];
+				Game.matrix[col][row] = 1; 
+			}
+		}
 	},
 
 	start: function(board, config) {
